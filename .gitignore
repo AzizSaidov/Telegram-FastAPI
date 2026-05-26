@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+*.db
+.env
+tz.md
+tz_for_antigravity.md
