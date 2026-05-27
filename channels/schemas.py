@@ -118,7 +118,6 @@ class ChannelReactionCreateSchema(BaseModel):
 
 
 class ProfileInChannel(BaseModel):
-    id: int
     username: str
     full_name: str | None
     avatar_url: str | None
@@ -130,7 +129,6 @@ class ProfileInChannel(BaseModel):
 
 class UserInChannel(BaseModel):
     id: int
-    phone_number: str
     profile: ProfileInChannel
 
     model_config = ConfigDict(from_attributes=True)

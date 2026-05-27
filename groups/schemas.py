@@ -114,7 +114,6 @@ class GroupReactionCreateSchema(BaseModel):
 
 
 class ProfileInGroup(BaseModel):
-    id: int
     username: str
     full_name: str | None
     avatar_url: str | None
@@ -126,7 +125,6 @@ class ProfileInGroup(BaseModel):
 
 class UserInGroup(BaseModel):
     id: int
-    phone_number: str
     profile: ProfileInGroup
 
     model_config = ConfigDict(from_attributes=True)

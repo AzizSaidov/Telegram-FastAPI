@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ProfileInNotification(BaseModel):
-    id: int
     username: str
     full_name: str | None
     avatar_url: str | None
@@ -16,7 +15,6 @@ class ProfileInNotification(BaseModel):
 
 class UserInNotification(BaseModel):
     id: int
-    phone_number: str
     profile: ProfileInNotification
 
     model_config = ConfigDict(from_attributes=True)

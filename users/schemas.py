@@ -86,7 +86,6 @@ class UserLoginSchema(BaseModel):
 
 
 class ProfileInUser(BaseModel):
-    id: int
     username: str
     full_name: str | None
     bio: str | None
@@ -100,6 +99,14 @@ class ProfileInUser(BaseModel):
 class UserRead(BaseModel):
     id: int
     phone_number: str
+    created_at: datetime
+    profile: ProfileInUser
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserSearchRead(BaseModel):
+    id: int
     created_at: datetime
     profile: ProfileInUser
 

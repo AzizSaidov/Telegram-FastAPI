@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from users.auth import get_current_user
 from users.models import User
-from users.schemas import AuthResponse, LogoutResponse, UserLoginSchema, UserRead, UserRegisterSchema
+from users.schemas import AuthResponse, LogoutResponse, UserLoginSchema, UserRegisterSchema, UserSearchRead
 from users.views import login_user, logout_user, register_user, search_users
 
 
@@ -26,6 +26,6 @@ def logout(db: Session = Depends(get_db), current_user: User = Depends(get_curre
     return logout_user(db, current_user.id)
 
 
-@users_router.get("/search", response_model=list[UserRead])
+@users_router.get("/search", response_model=list[UserSearchRead])
 def users_search(q: str = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return search_users(q, db, current_user)

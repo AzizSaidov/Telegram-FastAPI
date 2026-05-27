@@ -5,3 +5,5 @@ __pycache__/
 .env
 tz.md
 tz_for_antigravity.md
+media/*
+!media/.gitkeep

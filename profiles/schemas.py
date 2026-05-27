@@ -59,6 +59,13 @@ class ProfileUpdateSchema(BaseModel):
 
 class UserInProfile(BaseModel):
     id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserPrivateInProfile(BaseModel):
+    id: int
     phone_number: str
     created_at: datetime
 
@@ -66,7 +73,6 @@ class UserInProfile(BaseModel):
 
 
 class ProfileRead(BaseModel):
-    id: int
     username: str
     full_name: str | None
     bio: str | None
@@ -77,3 +83,7 @@ class ProfileRead(BaseModel):
     user: UserInProfile | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class MyProfileRead(ProfileRead):
+    user: UserPrivateInProfile | None = None

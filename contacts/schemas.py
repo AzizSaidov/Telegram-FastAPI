@@ -38,7 +38,6 @@ class ContactCreateSchema(BaseModel):
 
 
 class ProfileInContact(BaseModel):
-    id: int
     username: str
     full_name: str | None
     avatar_url: str | None
@@ -50,8 +49,6 @@ class ProfileInContact(BaseModel):
 
 class UserInContact(BaseModel):
     id: int
-    phone_number: str
-    created_at: datetime
     profile: ProfileInContact
 
     model_config = ConfigDict(from_attributes=True)

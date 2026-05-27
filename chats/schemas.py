@@ -49,7 +49,6 @@ class ReactionCreateSchema(BaseModel):
 
 
 class ProfileInChat(BaseModel):
-    id: int
     username: str
     full_name: str | None
     avatar_url: str | None
@@ -61,7 +60,6 @@ class ProfileInChat(BaseModel):
 
 class UserInChat(BaseModel):
     id: int
-    phone_number: str
     profile: ProfileInChat
 
     model_config = ConfigDict(from_attributes=True)

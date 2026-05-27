@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ProfileInStory(BaseModel):
-    id: int
     username: str
     full_name: str | None
     avatar_url: str | None
@@ -16,7 +15,6 @@ class ProfileInStory(BaseModel):
 
 class UserInStory(BaseModel):
     id: int
-    phone_number: str
     profile: ProfileInStory
 
     model_config = ConfigDict(from_attributes=True)
@@ -33,9 +31,19 @@ class StoryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class StoryInGroup(BaseModel):
+    id: int
+    media_url: str
+    media_type: str
+    expires_at: datetime
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class StoryGroupRead(BaseModel):
     user: UserInStory
-    stories: list[StoryRead]
+    stories: list[StoryInGroup]
 
 
 class StoryViewRead(BaseModel):

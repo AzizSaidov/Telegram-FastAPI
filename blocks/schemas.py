@@ -18,7 +18,6 @@ class BlockUserSchema(BaseModel):
 
 
 class ProfileInBlockedUser(BaseModel):
-    id: int
     username: str
     full_name: str | None
     avatar_url: str | None
@@ -30,8 +29,6 @@ class ProfileInBlockedUser(BaseModel):
 
 class UserInBlockedUser(BaseModel):
     id: int
-    phone_number: str
-    created_at: datetime
     profile: ProfileInBlockedUser
 
     model_config = ConfigDict(from_attributes=True)
