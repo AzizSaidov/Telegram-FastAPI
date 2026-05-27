@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from database import get_db
 from users.auth import get_current_user
 from users.models import User
-from users.schemas import AuthResponse, LogoutResponse, UserLoginSchema, UserRegisterSchema
-from users.views import login_user, logout_user, register_user
+from users.schemas import AuthResponse, LogoutResponse, UserLoginSchema, UserRead, UserRegisterSchema
+from users.views import login_user, logout_user, register_user, search_users
 
 
 users_router = APIRouter(prefix="/users", tags=["Users"])
@@ -24,3 +24,8 @@ def login(data: UserLoginSchema, db: Session = Depends(get_db)):
 @users_router.post("/logout", response_model=LogoutResponse)
 def logout(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return logout_user(db, current_user.id)
+
+
+@users_router.get("/search", response_model=list[UserRead])
+def users_search(q: str = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return search_users(q, db, current_user)

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from chats.schemas import ChatCreateSchema, ChatRead, DetailResponse, MessageRead, MessageUpdateSchema, ReactionCreateSchema, UnifiedChatRead
-from chats.views import add_message_reaction, create_or_get_chat, delete_message, edit_message, get_chat_messages, get_chats, get_unified_chats, pin_message, send_message
+from chats.views import add_message_reaction, create_or_get_chat, delete_message, edit_message, get_chat_messages, get_chats, get_unified_chats, pin_message, search_unified_chats, send_message
 from database import get_db
 from users.auth import get_current_user
 from users.models import User
@@ -24,6 +24,11 @@ def create_chat(data: ChatCreateSchema, db: Session = Depends(get_db), current_u
 @chats_router.get("/all", response_model=list[UnifiedChatRead])
 def all_chats_list(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return get_unified_chats(db, current_user)
+
+
+@chats_router.get("/search", response_model=list[UnifiedChatRead])
+def search_chats(q: str = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return search_unified_chats(q, db, current_user)
 
 
 @chats_router.get("/{chat_id}/messages", response_model=list[MessageRead])

@@ -180,6 +180,24 @@ def get_groups(db: Session, current_user: User):
     )
 
 
+def search_groups(q: str, db: Session, current_user: User):
+    query = q.strip()
+
+    if not query:
+        raise HTTPException(status_code=400, detail="Search query is required")
+
+    memberships = db.query(GroupMember).join(Group).filter(
+        GroupMember.user_id == current_user.id,
+        Group.name.ilike(f"%{query}%"),
+    ).all()
+
+    return sorted(
+        [build_group_response(membership.group, current_user, db) for membership in memberships],
+        key=lambda group: group["last_message"].created_at if group["last_message"] else group["created_at"],
+        reverse=True,
+    )
+
+
 def create_group(data: GroupCreateSchema, avatar: UploadFile | None, db: Session, current_user: User):
     avatar_url = save_group_avatar(avatar) if avatar is not None else None
 

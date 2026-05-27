@@ -223,6 +223,28 @@ def get_unified_chats(db: Session, current_user: User):
     return sorted(items, key=lambda item: item["updated_at"], reverse=True)
 
 
+def search_unified_chats(q: str, db: Session, current_user: User):
+    query = q.strip().lower()
+
+    if not query:
+        raise HTTPException(status_code=400, detail="Search query is required")
+
+    items = get_unified_chats(db, current_user)
+    result = []
+
+    for item in items:
+        title = item["title"].lower()
+        username = ""
+
+        if item["user"] and item["user"].profile:
+            username = item["user"].profile.username.lower()
+
+        if query in title or query in username:
+            result.append(item)
+
+    return result
+
+
 def create_or_get_chat(data: ChatCreateSchema, db: Session, current_user: User):
     profile = db.query(Profile).filter(Profile.username == data.username).first()
 

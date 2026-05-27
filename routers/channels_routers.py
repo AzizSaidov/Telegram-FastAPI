@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from channels.schemas import ChannelCreateSchema, ChannelDetailRead, ChannelMemberCreateSchema, ChannelMemberRead, ChannelPostRead, ChannelPostUpdateSchema, ChannelReactionCreateSchema, ChannelRead, ChannelUpdateSchema, DetailResponse, MembersCountRead
-from channels.views import add_channel_member, add_channel_post_reaction, create_channel, create_channel_post, delete_channel_post, edit_channel_post, get_channel_detail, get_channel_members, get_channel_members_count, get_channel_posts, get_channels, make_channel_admin, pin_channel_post, remove_channel_member, subscribe_channel, unsubscribe_channel, update_channel
+from channels.views import add_channel_member, add_channel_post_reaction, create_channel, create_channel_post, delete_channel_post, edit_channel_post, get_channel_detail, get_channel_members, get_channel_members_count, get_channel_posts, get_channels, make_channel_admin, pin_channel_post, remove_channel_member, search_channels, subscribe_channel, unsubscribe_channel, update_channel
 from database import get_db
 from users.auth import get_current_user
 from users.models import User
@@ -32,6 +32,11 @@ def create_new_channel(
     )
 
     return create_channel(data, avatar, db, current_user)
+
+
+@channels_router.get("/search", response_model=list[ChannelRead])
+def channels_search(q: str = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return search_channels(q, db, current_user)
 
 
 @channels_router.get("/{channel_id}", response_model=ChannelDetailRead)

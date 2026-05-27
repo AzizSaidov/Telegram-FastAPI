@@ -3,6 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from channels.models import Channel, ChannelMember, ChannelPost, ChannelPostReaction, ChannelReadState
@@ -200,6 +201,36 @@ def get_channels(db: Session, current_user: User):
 
     return sorted(
         [build_channel_response(membership.channel, current_user, db) for membership in memberships],
+        key=lambda channel: channel["last_post"].created_at if channel["last_post"] else channel["created_at"],
+        reverse=True,
+    )
+
+
+def search_channels(q: str, db: Session, current_user: User):
+    query = q.strip()
+
+    if not query:
+        raise HTTPException(status_code=400, detail="Search query is required")
+
+    member_channel_ids = [
+        membership.channel_id
+        for membership in db.query(ChannelMember).filter(ChannelMember.user_id == current_user.id).all()
+    ]
+    channels_query = db.query(Channel).filter(
+        or_(
+            Channel.is_public == True,
+            Channel.id.in_(member_channel_ids),
+        ),
+        or_(
+            Channel.name.ilike(f"%{query}%"),
+            Channel.description.ilike(f"%{query}%"),
+        ),
+    )
+
+    channels = channels_query.all()
+
+    return sorted(
+        [build_channel_response(channel, current_user, db) for channel in channels],
         key=lambda channel: channel["last_post"].created_at if channel["last_post"] else channel["created_at"],
         reverse=True,
     )

@@ -1,6 +1,8 @@
 from fastapi import HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from profiles.models import Profile
 from users.auth import create_access_token, create_refresh_token, hash_password, verify_password
 from users.models import User
 from users.schemas import UserLoginSchema, UserRegisterSchema
@@ -95,3 +97,23 @@ def logout_user(db: Session, user_id: int):
     db.commit()
 
     return {"detail": "Logout successful"}
+
+
+def search_users(q: str, db: Session, current_user: User):
+    query = q.strip().lower()
+
+    if not query:
+        raise HTTPException(status_code=400, detail="Search query is required")
+
+    filters = [
+        Profile.username.ilike(f"%{query}%"),
+        Profile.full_name.ilike(f"%{query}%"),
+    ]
+
+    if query.startswith("+"):
+        filters.append(User.phone_number == query)
+
+    return db.query(User).join(Profile).filter(
+        User.id != current_user.id,
+        or_(*filters),
+    ).limit(20).all()

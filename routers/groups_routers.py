@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from database import get_db
 from groups.schemas import DetailResponse, GroupCreateSchema, GroupDetailRead, GroupMemberCreateSchema, GroupMemberRead, GroupMessageRead, GroupMessageUpdateSchema, GroupReactionCreateSchema, GroupRead, GroupUpdateSchema, MembersCountRead
-from groups.views import add_group_member, add_group_message_reaction, create_group, delete_group_message, edit_group_message, get_group_detail, get_group_members, get_group_members_count, get_group_messages, get_groups, make_group_admin, pin_group_message, remove_group_member, send_group_message, update_group
+from groups.views import add_group_member, add_group_message_reaction, create_group, delete_group_message, edit_group_message, get_group_detail, get_group_members, get_group_members_count, get_group_messages, get_groups, make_group_admin, pin_group_message, remove_group_member, search_groups, send_group_message, update_group
 from users.auth import get_current_user
 from users.models import User
 
@@ -30,6 +30,11 @@ def create_new_group(
     )
 
     return create_group(data, avatar, db, current_user)
+
+
+@groups_router.get("/search", response_model=list[GroupRead])
+def groups_search(q: str = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return search_groups(q, db, current_user)
 
 
 @groups_router.get("/{group_id}", response_model=GroupDetailRead)
