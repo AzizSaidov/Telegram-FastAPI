@@ -6,8 +6,8 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from blocks.models import BlockedUser
 from chats.models import Chat, Message, MessageReaction
+from chats.permissions import check_chat_member, check_private_chat_block, get_other_user
 from chats.schemas import ChatCreateSchema, MessageUpdateSchema, ReactionCreateSchema
 from profiles.models import Profile
 from users.models import User
@@ -15,34 +15,6 @@ from users.models import User
 
 CHAT_PHOTOS_DIR = Path("media") / "chats" / "photos"
 CHAT_VIDEOS_DIR = Path("media") / "chats" / "videos"
-
-
-def get_other_user(chat: Chat, current_user: User):
-    if chat.user_id_1 == current_user.id:
-        return chat.user_2
-
-    return chat.user_1
-
-
-def check_chat_member(chat: Chat, current_user: User):
-    if current_user.id not in [chat.user_id_1, chat.user_id_2]:
-        raise HTTPException(status_code=403, detail="You are not a chat member")
-
-    return True
-
-
-def check_private_chat_block(db: Session, sender_id: int, receiver_id: int):
-    blocked = db.query(BlockedUser).filter(
-        or_(
-            (BlockedUser.blocker_id == sender_id) & (BlockedUser.blocked_id == receiver_id),
-            (BlockedUser.blocker_id == receiver_id) & (BlockedUser.blocked_id == sender_id),
-        )
-    ).first()
-
-    if blocked:
-        raise HTTPException(status_code=403, detail="You cannot use this chat")
-
-    return True
 
 
 def get_chat_or_404(chat_id: int, db: Session):

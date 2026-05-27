@@ -3,18 +3,14 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from blocks.models import BlockedUser
 from groups.models import Group, GroupMember, GroupMessage, GroupMessageReaction, GroupReadState
+from groups.permissions import GROUP_ADMIN, GROUP_MEMBER, check_group_admin, check_group_block, check_group_member, get_group_member
 from groups.schemas import GroupCreateSchema, GroupMemberCreateSchema, GroupMessageUpdateSchema, GroupReactionCreateSchema, GroupUpdateSchema
 from profiles.models import Profile
 from users.models import User
 
-
-GROUP_ADMIN = "admin"
-GROUP_MEMBER = "member"
 
 GROUP_AVATARS_DIR = Path("media") / "groups" / "avatars"
 GROUP_PHOTOS_DIR = Path("media") / "groups" / "photos"
@@ -105,45 +101,6 @@ def get_user_by_username(username: str, db: Session):
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
-
-
-def get_group_member(group_id: int, user_id: int, db: Session):
-    return db.query(GroupMember).filter(
-        GroupMember.group_id == group_id,
-        GroupMember.user_id == user_id,
-    ).first()
-
-
-def check_group_member(group: Group, current_user: User, db: Session):
-    member = get_group_member(group.id, current_user.id, db)
-
-    if member is None:
-        raise HTTPException(status_code=403, detail="You are not a group member")
-
-    return member
-
-
-def check_group_admin(group: Group, current_user: User, db: Session):
-    member = check_group_member(group, current_user, db)
-
-    if member.role != GROUP_ADMIN:
-        raise HTTPException(status_code=403, detail="Only group admin can do this")
-
-    return member
-
-
-def check_group_block(db: Session, current_user_id: int, target_user_id: int):
-    blocked = db.query(BlockedUser).filter(
-        or_(
-            (BlockedUser.blocker_id == current_user_id) & (BlockedUser.blocked_id == target_user_id),
-            (BlockedUser.blocker_id == target_user_id) & (BlockedUser.blocked_id == current_user_id),
-        )
-    ).first()
-
-    if blocked:
-        raise HTTPException(status_code=403, detail="You cannot add this user")
-
-    return True
 
 
 def get_group_unread_count(group_id: int, current_user: User, db: Session):
