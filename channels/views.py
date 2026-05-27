@@ -447,10 +447,12 @@ def update_channel_read_state(channel: Channel, current_user: User, db: Session)
     return read_state
 
 
-def get_channel_posts(channel_id: int, db: Session, current_user: User):
+def get_channel_posts(channel_id: int, db: Session, current_user: User, limit: int, offset: int):
     channel = get_channel_or_404(channel_id, db)
     check_channel_visible(channel, current_user, db)
-    posts = db.query(ChannelPost).filter(ChannelPost.channel_id == channel.id).order_by(ChannelPost.created_at.asc()).all()
+    posts = db.query(ChannelPost).filter(
+        ChannelPost.channel_id == channel.id,
+    ).order_by(ChannelPost.created_at.desc()).offset(offset).limit(limit).all()
 
     update_channel_read_state(channel, current_user, db)
 

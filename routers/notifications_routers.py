@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -12,8 +12,13 @@ notifications_router = APIRouter(prefix="/notifications", tags=["Notifications"]
 
 
 @notifications_router.get("/", response_model=list[NotificationRead])
-def notifications_list(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return get_notifications(db, current_user)
+def notifications_list(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_notifications(db, current_user, limit, offset)
 
 
 @notifications_router.post("/read-all", response_model=DetailResponse)

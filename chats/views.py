@@ -281,7 +281,7 @@ def create_or_get_chat(data: ChatCreateSchema, db: Session, current_user: User):
     return build_chat_response(chat, current_user, db)
 
 
-def get_chat_messages(chat_id: int, db: Session, current_user: User):
+def get_chat_messages(chat_id: int, db: Session, current_user: User, limit: int, offset: int):
     chat = get_chat_or_404(chat_id, db)
     check_chat_member(chat, current_user)
 
@@ -292,7 +292,9 @@ def get_chat_messages(chat_id: int, db: Session, current_user: User):
     ).update({"is_read": True})
     db.commit()
 
-    return db.query(Message).filter(Message.chat_id == chat.id).order_by(Message.created_at.asc()).all()
+    return db.query(Message).filter(
+        Message.chat_id == chat.id,
+    ).order_by(Message.created_at.desc()).offset(offset).limit(limit).all()
 
 
 def send_message(

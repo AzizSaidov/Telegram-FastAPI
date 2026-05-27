@@ -32,8 +32,14 @@ def search_chats(q: str = Query(...), db: Session = Depends(get_db), current_use
 
 
 @chats_router.get("/{chat_id}/messages", response_model=list[MessageRead])
-def chat_messages(chat_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return get_chat_messages(chat_id, db, current_user)
+def chat_messages(
+    chat_id: int,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_chat_messages(chat_id, db, current_user, limit, offset)
 
 
 @chats_router.post("/{chat_id}/messages", response_model=MessageRead, status_code=201)

@@ -66,7 +66,7 @@ def create_story(media: UploadFile, db: Session, current_user: User):
     return new_story
 
 
-def get_active_stories(db: Session, current_user: User):
+def get_active_stories(db: Session, current_user: User, limit: int, offset: int):
     now = get_dushanbe_time()
     blocked_me = db.query(BlockedUser.blocker_id).filter(
         BlockedUser.blocked_id == current_user.id,
@@ -82,7 +82,7 @@ def get_active_stories(db: Session, current_user: User):
     if blocked_user_ids:
         stories_query = stories_query.filter(Story.user_id.notin_(blocked_user_ids))
 
-    stories = stories_query.order_by(Story.created_at.desc()).all()
+    stories = stories_query.order_by(Story.created_at.desc()).offset(offset).limit(limit).all()
     grouped_stories = {}
 
     for story in stories:

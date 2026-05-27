@@ -104,8 +104,14 @@ def unsubscribe_from_channel(channel_id: int, db: Session = Depends(get_db), cur
 
 
 @channels_router.get("/{channel_id}/posts", response_model=list[ChannelPostRead])
-def channel_posts(channel_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return get_channel_posts(channel_id, db, current_user)
+def channel_posts(
+    channel_id: int,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_channel_posts(channel_id, db, current_user, limit, offset)
 
 
 @channels_router.post("/{channel_id}/posts", response_model=ChannelPostRead, status_code=201)

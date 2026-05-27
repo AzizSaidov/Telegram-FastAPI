@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -12,8 +12,13 @@ stories_router = APIRouter(prefix="/stories", tags=["Stories"])
 
 
 @stories_router.get("/", response_model=list[StoryGroupRead])
-def stories_list(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return get_active_stories(db, current_user)
+def stories_list(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_active_stories(db, current_user, limit, offset)
 
 
 @stories_router.post("/", response_model=StoryRead, status_code=201)

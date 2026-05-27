@@ -356,10 +356,12 @@ def update_group_read_state(group: Group, current_user: User, db: Session):
     return read_state
 
 
-def get_group_messages(group_id: int, db: Session, current_user: User):
+def get_group_messages(group_id: int, db: Session, current_user: User, limit: int, offset: int):
     group = get_group_or_404(group_id, db)
     check_group_member(group, current_user, db)
-    messages = db.query(GroupMessage).filter(GroupMessage.group_id == group.id).order_by(GroupMessage.created_at.asc()).all()
+    messages = db.query(GroupMessage).filter(
+        GroupMessage.group_id == group.id,
+    ).order_by(GroupMessage.created_at.desc()).offset(offset).limit(limit).all()
 
     update_group_read_state(group, current_user, db)
 

@@ -90,8 +90,14 @@ def add_group_admin(group_id: int, username: str, db: Session = Depends(get_db),
 
 
 @groups_router.get("/{group_id}/messages", response_model=list[GroupMessageRead])
-def group_messages(group_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return get_group_messages(group_id, db, current_user)
+def group_messages(
+    group_id: int,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_group_messages(group_id, db, current_user, limit, offset)
 
 
 @groups_router.post("/{group_id}/messages", response_model=GroupMessageRead, status_code=201)

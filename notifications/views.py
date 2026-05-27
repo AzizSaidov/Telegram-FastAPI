@@ -62,10 +62,10 @@ def create_notification(
     return new_notification
 
 
-def get_notifications(db: Session, current_user: User):
+def get_notifications(db: Session, current_user: User, limit: int, offset: int):
     return db.query(Notification).filter(
         Notification.to_user_id == current_user.id,
-    ).order_by(Notification.created_at.desc()).all()
+    ).order_by(Notification.created_at.desc()).offset(offset).limit(limit).all()
 
 
 def mark_notification_as_read(notification_id: int, db: Session, current_user: User):
