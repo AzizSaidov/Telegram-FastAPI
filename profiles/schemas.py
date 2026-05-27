@@ -73,7 +73,7 @@ class UserPrivateInProfile(BaseModel):
 
 
 class ProfileRead(BaseModel):
-    username: str
+    username: str | None
     full_name: str | None
     bio: str | None
     avatar_url: str | None

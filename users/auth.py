@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -25,30 +24,10 @@ if SECRET_KEY is None:
     raise RuntimeError("SECRET_KEY is not set")
 
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-)
-
-
 auth_header = APIKeyHeader(
     name="Authorization",
     auto_error=False,
 )
-
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(
-    plain_password: str,
-    hashed_password: str,
-) -> bool:
-    return pwd_context.verify(
-        plain_password,
-        hashed_password,
-    )
 
 
 def create_access_token(data: dict) -> str:

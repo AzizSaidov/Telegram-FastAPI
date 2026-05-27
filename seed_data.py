@@ -12,12 +12,10 @@ from notifications.models import Notification
 from polls.models import Poll, PollOption, PollVote
 from profiles.models import Profile
 from stories.models import Story, StoryView
-from users.auth import hash_password
 from users.models import User
 from utils import get_dushanbe_time
 
 
-PASSWORD = "Password123"
 MEDIA_ROOT = Path("media") / "seed"
 
 
@@ -76,7 +74,6 @@ def create_user(db, phone_number: str, username: str, full_name: str, bio: str, 
     now = get_dushanbe_time()
     user = User(
         phone_number=phone_number,
-        hashed_password=hash_password(PASSWORD),
         created_at=now - timedelta(days=12),
     )
     db.add(user)
@@ -553,8 +550,8 @@ def seed_database():
         db.close()
 
     print("Seed data created successfully.")
-    print(f"Password for all test users: {PASSWORD}")
-    print("Main login: +992900000001")
+    print("Main phone number: +992900000001")
+    print("Use POST /users/request-otp, then POST /users/verify-otp with the OTP code from Swagger.")
     print("Users: aziz, malika, farhod, zebo, davron, sabrina, rustam, nozim")
     print("Channels: Tech Pulse public, Movie Club public, Private Backend Notes private")
 

@@ -49,7 +49,7 @@ class ReactionCreateSchema(BaseModel):
 
 
 class ProfileInChat(BaseModel):
-    username: str
+    username: str | None
     full_name: str | None
     avatar_url: str | None
     is_online: bool

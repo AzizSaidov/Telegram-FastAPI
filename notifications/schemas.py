@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ProfileInNotification(BaseModel):
-    username: str
+    username: str | None
     full_name: str | None
     avatar_url: str | None
     is_online: bool

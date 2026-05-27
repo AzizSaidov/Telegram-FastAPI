@@ -4,21 +4,21 @@ from sqlalchemy.orm import Session
 from database import get_db
 from users.auth import get_current_user
 from users.models import User
-from users.schemas import AuthResponse, LogoutResponse, UserLoginSchema, UserRegisterSchema, UserSearchRead
-from users.views import login_user, logout_user, register_user, search_users
+from users.schemas import AuthResponse, LogoutResponse, OTPResponse, PhoneNumberSchema, UserSearchRead, VerifyOTPSchema
+from users.views import logout_user, request_otp, search_users, verify_otp
 
 
 users_router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@users_router.post("/register", response_model=AuthResponse, status_code=201)
-def register(data: UserRegisterSchema, db: Session = Depends(get_db)):
-    return register_user(data, db)
+@users_router.post("/request-otp", response_model=OTPResponse)
+def create_otp(data: PhoneNumberSchema, db: Session = Depends(get_db)):
+    return request_otp(data, db)
 
 
-@users_router.post("/login", response_model=AuthResponse)
-def login(data: UserLoginSchema, db: Session = Depends(get_db)):
-    return login_user(data, db)
+@users_router.post("/verify-otp", response_model=AuthResponse)
+def verify_login_otp(data: VerifyOTPSchema, db: Session = Depends(get_db)):
+    return verify_otp(data, db)
 
 
 @users_router.post("/logout", response_model=LogoutResponse)
