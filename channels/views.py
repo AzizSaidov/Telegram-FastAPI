@@ -8,13 +8,35 @@ from sqlalchemy.orm import Session
 from channels.models import Channel, ChannelMember, ChannelPost, ChannelPostReaction, ChannelReadState
 from channels.permissions import CHANNEL_ADMIN, CHANNEL_SUBSCRIBER, check_channel_admin, check_channel_member, check_channel_visible, get_channel_member
 from channels.schemas import ChannelCreateSchema, ChannelMemberCreateSchema, ChannelPostUpdateSchema, ChannelReactionCreateSchema, ChannelUpdateSchema
+from notifications.views import create_notification
 from profiles.models import Profile
+from sockets.schemas import EVENT_CHANNEL_POST_CREATED, EVENT_CHANNEL_POST_DELETED, EVENT_CHANNEL_POST_UPDATED, EVENT_REACTION_CREATED, socket_event
+from sockets.utils import broadcast_socket_event_to_users
 from users.models import User
 
 
 CHANNEL_AVATARS_DIR = Path("media") / "channels" / "avatars"
 CHANNEL_PHOTOS_DIR = Path("media") / "channels" / "photos"
 CHANNEL_VIDEOS_DIR = Path("media") / "channels" / "videos"
+
+
+def get_channel_user_ids(channel_id: int, db: Session):
+    members = db.query(ChannelMember).filter(ChannelMember.channel_id == channel_id).all()
+
+    return [member.user_id for member in members]
+
+
+def build_channel_post_event_data(post: ChannelPost):
+    return {
+        "id": post.id,
+        "channel_id": post.channel_id,
+        "sender_id": post.sender_id,
+        "text": post.text,
+        "media_url": post.media_url,
+        "is_edited": post.is_edited,
+        "is_pinned": post.is_pinned,
+        "created_at": post.created_at.isoformat(),
+    }
 
 
 def save_channel_avatar(avatar: UploadFile):
@@ -425,6 +447,16 @@ def create_channel_post(channel_id: int, text: str | None, media: UploadFile | N
     db.commit()
     db.refresh(new_post)
 
+    user_ids = get_channel_user_ids(channel.id, db)
+
+    for user_id in user_ids:
+        create_notification(db, user_id, current_user.id, "channel_post", new_post.id, "channel_post")
+
+    broadcast_socket_event_to_users(
+        user_ids,
+        socket_event(EVENT_CHANNEL_POST_CREATED, build_channel_post_event_data(new_post)),
+    )
+
     return build_channel_post_response(new_post, current_user, db)
 
 
@@ -442,6 +474,11 @@ def edit_channel_post(channel_id: int, post_id: int, data: ChannelPostUpdateSche
     db.commit()
     db.refresh(post)
 
+    broadcast_socket_event_to_users(
+        get_channel_user_ids(channel.id, db),
+        socket_event(EVENT_CHANNEL_POST_UPDATED, build_channel_post_event_data(post)),
+    )
+
     return build_channel_post_response(post, current_user, db)
 
 
@@ -453,10 +490,21 @@ def delete_channel_post(channel_id: int, post_id: int, db: Session, current_user
     if post.channel_id != channel.id:
         raise HTTPException(status_code=404, detail="Channel post not found in this channel")
 
+    user_ids = get_channel_user_ids(channel.id, db)
+    event_data = {
+        "id": post.id,
+        "channel_id": channel.id,
+    }
+
     db.query(ChannelReadState).filter(ChannelReadState.last_read_post_id == post.id).update({"last_read_post_id": None})
     db.query(ChannelPostReaction).filter(ChannelPostReaction.post_id == post.id).delete()
     db.delete(post)
     db.commit()
+
+    broadcast_socket_event_to_users(
+        user_ids,
+        socket_event(EVENT_CHANNEL_POST_DELETED, event_data),
+    )
 
     return {"detail": "Channel post deleted successfully"}
 
@@ -478,6 +526,11 @@ def pin_channel_post(channel_id: int, post_id: int, db: Session, current_user: U
 
     db.commit()
     db.refresh(post)
+
+    broadcast_socket_event_to_users(
+        get_channel_user_ids(channel.id, db),
+        socket_event(EVENT_CHANNEL_POST_UPDATED, build_channel_post_event_data(post)),
+    )
 
     return build_channel_post_response(post, current_user, db)
 
@@ -507,5 +560,19 @@ def add_channel_post_reaction(channel_id: int, post_id: int, data: ChannelReacti
 
     db.commit()
     db.refresh(post)
+
+    if post.sender_id != current_user.id:
+        create_notification(db, post.sender_id, current_user.id, "reaction", post.id, "channel_post")
+
+    broadcast_socket_event_to_users(
+        get_channel_user_ids(channel.id, db),
+        socket_event(EVENT_REACTION_CREATED, {
+            "post_id": post.id,
+            "channel_id": channel.id,
+            "user_id": current_user.id,
+            "emoji": data.emoji,
+            "entity_type": "channel_post",
+        }),
+    )
 
     return build_channel_post_response(post, current_user, db)

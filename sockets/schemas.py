@@ -12,6 +12,8 @@ EVENT_MESSAGE_DELETED = "message_deleted"
 EVENT_REACTION_CREATED = "reaction_created"
 EVENT_GROUP_MESSAGE_CREATED = "group_message_created"
 EVENT_CHANNEL_POST_CREATED = "channel_post_created"
+EVENT_CHANNEL_POST_UPDATED = "channel_post_updated"
+EVENT_CHANNEL_POST_DELETED = "channel_post_deleted"
 EVENT_NOTIFICATION_CREATED = "notification_created"
 
 

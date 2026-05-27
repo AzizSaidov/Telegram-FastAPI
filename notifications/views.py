@@ -2,6 +2,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from notifications.models import Notification
+from sockets.schemas import EVENT_NOTIFICATION_CREATED, socket_event
+from sockets.utils import send_socket_event_to_user
 from users.models import User
 
 
@@ -12,6 +14,18 @@ NOTIFICATION_TYPES = [
     "reaction",
     "mention",
 ]
+
+
+def build_notification_event_data(notification: Notification):
+    return {
+        "id": notification.id,
+        "type": notification.type,
+        "entity_id": notification.entity_id,
+        "entity_type": notification.entity_type,
+        "is_read": notification.is_read,
+        "created_at": notification.created_at.isoformat(),
+        "from_user_id": notification.from_user_id,
+    }
 
 
 def create_notification(
@@ -39,6 +53,11 @@ def create_notification(
     db.add(new_notification)
     db.commit()
     db.refresh(new_notification)
+
+    send_socket_event_to_user(
+        to_user_id,
+        socket_event(EVENT_NOTIFICATION_CREATED, build_notification_event_data(new_notification)),
+    )
 
     return new_notification
 

@@ -8,13 +8,37 @@ from sqlalchemy.orm import Session
 from groups.models import Group, GroupMember, GroupMessage, GroupMessageReaction, GroupReadState
 from groups.permissions import GROUP_ADMIN, GROUP_MEMBER, check_group_admin, check_group_block, check_group_member, get_group_member
 from groups.schemas import GroupCreateSchema, GroupMemberCreateSchema, GroupMessageUpdateSchema, GroupReactionCreateSchema, GroupUpdateSchema
+from notifications.views import create_notification
 from profiles.models import Profile
+from sockets.schemas import EVENT_GROUP_MESSAGE_CREATED, EVENT_MESSAGE_DELETED, EVENT_MESSAGE_UPDATED, EVENT_REACTION_CREATED, socket_event
+from sockets.utils import broadcast_socket_event_to_users
 from users.models import User
 
 
 GROUP_AVATARS_DIR = Path("media") / "groups" / "avatars"
 GROUP_PHOTOS_DIR = Path("media") / "groups" / "photos"
 GROUP_VIDEOS_DIR = Path("media") / "groups" / "videos"
+
+
+def get_group_user_ids(group_id: int, db: Session):
+    members = db.query(GroupMember).filter(GroupMember.group_id == group_id).all()
+
+    return [member.user_id for member in members]
+
+
+def build_group_message_event_data(message: GroupMessage):
+    return {
+        "id": message.id,
+        "group_id": message.group_id,
+        "sender_id": message.sender_id,
+        "text": message.text,
+        "media_url": message.media_url,
+        "reply_to_id": message.reply_to_id,
+        "forwarded_from_id": message.forwarded_from_id,
+        "is_edited": message.is_edited,
+        "is_pinned": message.is_pinned,
+        "created_at": message.created_at.isoformat(),
+    }
 
 
 def save_group_avatar(avatar: UploadFile):
@@ -369,6 +393,16 @@ def send_group_message(
     db.commit()
     db.refresh(new_message)
 
+    user_ids = get_group_user_ids(group.id, db)
+
+    for user_id in user_ids:
+        create_notification(db, user_id, current_user.id, "group_message", new_message.id, "group_message")
+
+    broadcast_socket_event_to_users(
+        user_ids,
+        socket_event(EVENT_GROUP_MESSAGE_CREATED, build_group_message_event_data(new_message)),
+    )
+
     return new_message
 
 
@@ -389,6 +423,11 @@ def edit_group_message(group_id: int, message_id: int, data: GroupMessageUpdateS
     db.commit()
     db.refresh(message)
 
+    broadcast_socket_event_to_users(
+        get_group_user_ids(group.id, db),
+        socket_event(EVENT_MESSAGE_UPDATED, build_group_message_event_data(message)),
+    )
+
     return message
 
 
@@ -403,12 +442,23 @@ def delete_group_message(group_id: int, message_id: int, db: Session, current_us
     if message.sender_id != current_user.id and member.role != GROUP_ADMIN:
         raise HTTPException(status_code=403, detail="You can delete only your own message")
 
+    event_data = {
+        "id": message.id,
+        "group_id": group.id,
+    }
+    user_ids = get_group_user_ids(group.id, db)
+
     db.query(GroupReadState).filter(GroupReadState.last_read_message_id == message.id).update({"last_read_message_id": None})
     db.query(GroupMessage).filter(GroupMessage.reply_to_id == message.id).update({"reply_to_id": None})
     db.query(GroupMessage).filter(GroupMessage.forwarded_from_id == message.id).update({"forwarded_from_id": None})
     db.query(GroupMessageReaction).filter(GroupMessageReaction.message_id == message.id).delete()
     db.delete(message)
     db.commit()
+
+    broadcast_socket_event_to_users(
+        user_ids,
+        socket_event(EVENT_MESSAGE_DELETED, event_data),
+    )
 
     return {"detail": "Group message deleted successfully"}
 
@@ -430,6 +480,11 @@ def pin_group_message(group_id: int, message_id: int, db: Session, current_user:
 
     db.commit()
     db.refresh(message)
+
+    broadcast_socket_event_to_users(
+        get_group_user_ids(group.id, db),
+        socket_event(EVENT_MESSAGE_UPDATED, build_group_message_event_data(message)),
+    )
 
     return message
 
@@ -459,5 +514,19 @@ def add_group_message_reaction(group_id: int, message_id: int, data: GroupReacti
 
     db.commit()
     db.refresh(message)
+
+    if message.sender_id != current_user.id:
+        create_notification(db, message.sender_id, current_user.id, "reaction", message.id, "group_message")
+
+    broadcast_socket_event_to_users(
+        get_group_user_ids(group.id, db),
+        socket_event(EVENT_REACTION_CREATED, {
+            "message_id": message.id,
+            "group_id": group.id,
+            "user_id": current_user.id,
+            "emoji": data.emoji,
+            "entity_type": "group_message",
+        }),
+    )
 
     return message

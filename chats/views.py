@@ -9,12 +9,31 @@ from sqlalchemy.orm import Session
 from chats.models import Chat, Message, MessageReaction
 from chats.permissions import check_chat_member, check_private_chat_block, get_other_user
 from chats.schemas import ChatCreateSchema, MessageUpdateSchema, ReactionCreateSchema
+from notifications.views import create_notification
 from profiles.models import Profile
+from sockets.schemas import EVENT_MESSAGE_CREATED, EVENT_MESSAGE_DELETED, EVENT_MESSAGE_UPDATED, EVENT_REACTION_CREATED, socket_event
+from sockets.utils import broadcast_socket_event_to_users
 from users.models import User
 
 
 CHAT_PHOTOS_DIR = Path("media") / "chats" / "photos"
 CHAT_VIDEOS_DIR = Path("media") / "chats" / "videos"
+
+
+def build_message_event_data(message: Message):
+    return {
+        "id": message.id,
+        "chat_id": message.chat_id,
+        "sender_id": message.sender_id,
+        "text": message.text,
+        "media_url": message.media_url,
+        "reply_to_id": message.reply_to_id,
+        "forwarded_from_id": message.forwarded_from_id,
+        "is_edited": message.is_edited,
+        "is_read": message.is_read,
+        "is_pinned": message.is_pinned,
+        "created_at": message.created_at.isoformat(),
+    }
 
 
 def get_chat_or_404(chat_id: int, db: Session):
@@ -197,6 +216,12 @@ def send_message(
     db.commit()
     db.refresh(new_message)
 
+    create_notification(db, other_user.id, current_user.id, "message", new_message.id, "message")
+    broadcast_socket_event_to_users(
+        [current_user.id, other_user.id],
+        socket_event(EVENT_MESSAGE_CREATED, build_message_event_data(new_message)),
+    )
+
     return new_message
 
 
@@ -217,6 +242,12 @@ def edit_message(chat_id: int, message_id: int, data: MessageUpdateSchema, db: S
     db.commit()
     db.refresh(message)
 
+    other_user = get_other_user(chat, current_user)
+    broadcast_socket_event_to_users(
+        [current_user.id, other_user.id],
+        socket_event(EVENT_MESSAGE_UPDATED, build_message_event_data(message)),
+    )
+
     return message
 
 
@@ -231,11 +262,22 @@ def delete_message(chat_id: int, message_id: int, db: Session, current_user: Use
     if message.sender_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can delete only your own message")
 
+    other_user = get_other_user(chat, current_user)
+    event_data = {
+        "id": message.id,
+        "chat_id": chat.id,
+    }
+
     db.query(Message).filter(Message.reply_to_id == message.id).update({"reply_to_id": None})
     db.query(Message).filter(Message.forwarded_from_id == message.id).update({"forwarded_from_id": None})
     db.query(MessageReaction).filter(MessageReaction.message_id == message.id).delete()
     db.delete(message)
     db.commit()
+
+    broadcast_socket_event_to_users(
+        [current_user.id, other_user.id],
+        socket_event(EVENT_MESSAGE_DELETED, event_data),
+    )
 
     return {"detail": "Message deleted successfully"}
 
@@ -257,6 +299,12 @@ def pin_message(chat_id: int, message_id: int, db: Session, current_user: User):
 
     db.commit()
     db.refresh(message)
+
+    other_user = get_other_user(chat, current_user)
+    broadcast_socket_event_to_users(
+        [current_user.id, other_user.id],
+        socket_event(EVENT_MESSAGE_UPDATED, build_message_event_data(message)),
+    )
 
     return message
 
@@ -286,5 +334,20 @@ def add_message_reaction(chat_id: int, message_id: int, data: ReactionCreateSche
 
     db.commit()
     db.refresh(message)
+
+    if message.sender_id != current_user.id:
+        create_notification(db, message.sender_id, current_user.id, "reaction", message.id, "message")
+
+    other_user = get_other_user(chat, current_user)
+    broadcast_socket_event_to_users(
+        [current_user.id, other_user.id],
+        socket_event(EVENT_REACTION_CREATED, {
+            "message_id": message.id,
+            "chat_id": chat.id,
+            "user_id": current_user.id,
+            "emoji": data.emoji,
+            "entity_type": "message",
+        }),
+    )
 
     return message
