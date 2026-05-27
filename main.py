@@ -3,12 +3,14 @@ from fastapi.staticfiles import StaticFiles
 from database import Base, engine
 
 from blocks import models as blocks_models
+from chats import models as chats_models
 from contacts import models as contacts_models
 from profiles import models as profiles_models
 from stories import models as stories_models
 from users import models as users_models
 
 from routers.blocks_routers import blocks_router
+from routers.chats_routers import chats_router
 from routers.contacts_routers import contacts_router
 from routers.profiles_routers import profiles_router
 from routers.stories_routers import stories_router
@@ -27,3 +29,4 @@ app.include_router(profiles_router)
 app.include_router(contacts_router)
 app.include_router(blocks_router)
 app.include_router(stories_router)
+app.include_router(chats_router)
