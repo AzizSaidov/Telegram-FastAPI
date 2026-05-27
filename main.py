@@ -23,6 +23,7 @@ from routers.polls_routers import polls_router
 from routers.profiles_routers import profiles_router
 from routers.stories_routers import stories_router
 from routers.users_routers import users_router
+from sockets.router import sockets_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -42,3 +43,4 @@ app.include_router(groups_router)
 app.include_router(channels_router)
 app.include_router(polls_router)
 app.include_router(notifications_router)
+app.include_router(sockets_router)
