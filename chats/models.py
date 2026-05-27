@@ -42,7 +42,7 @@ class Message(Base):
     sender = relationship("User", foreign_keys=[sender_id])
     reply_to = relationship("Message", remote_side=[id], foreign_keys=[reply_to_id])
     forwarded_from = relationship("Message", remote_side=[id], foreign_keys=[forwarded_from_id])
-    reactions = relationship("MessageReaction", cascade="all, delete-orphan")
+    reactions = relationship("MessageReaction", back_populates="message", cascade="all, delete-orphan")
 
 
 class MessageReaction(Base):
@@ -57,5 +57,5 @@ class MessageReaction(Base):
     emoji: Mapped[str] = mapped_column(String(20), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=get_dushanbe_time, nullable=False)
 
-    message = relationship("Message")
+    message = relationship("Message", back_populates="reactions")
     user = relationship("User")
