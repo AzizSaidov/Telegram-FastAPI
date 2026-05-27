@@ -54,6 +54,7 @@ class ChannelPost(Base):
     channel = relationship("Channel", back_populates="posts")
     sender = relationship("User", foreign_keys=[sender_id])
     reactions = relationship("ChannelPostReaction", back_populates="post", cascade="all, delete-orphan")
+    poll = relationship("Poll", back_populates="channel_post", uselist=False, cascade="all, delete-orphan")
 
 
 class ChannelPostReaction(Base):

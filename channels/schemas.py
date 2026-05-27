@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from polls.schemas import PollRead
+
 
 class ChannelCreateSchema(BaseModel):
     name: str
@@ -162,6 +164,7 @@ class ChannelPostRead(BaseModel):
     created_at: datetime
     sender: UserInChannel
     reactions: list[ChannelReactionRead] = []
+    poll: PollRead | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

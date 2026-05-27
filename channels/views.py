@@ -152,6 +152,27 @@ def build_channel_detail_response(channel: Channel, current_user: User, db: Sess
     return data
 
 
+def build_channel_post_response(post: ChannelPost, current_user: User, db: Session):
+    poll = None
+
+    if post.poll:
+        from polls.views import build_poll_response
+
+        poll = build_poll_response(post.poll, current_user, db)
+
+    return {
+        "id": post.id,
+        "text": post.text,
+        "media_url": post.media_url,
+        "is_edited": post.is_edited,
+        "is_pinned": post.is_pinned,
+        "created_at": post.created_at,
+        "sender": post.sender,
+        "reactions": post.reactions,
+        "poll": poll,
+    }
+
+
 def get_channels(db: Session, current_user: User):
     memberships = db.query(ChannelMember).filter(ChannelMember.user_id == current_user.id).all()
 
@@ -380,7 +401,7 @@ def get_channel_posts(channel_id: int, db: Session, current_user: User):
 
     update_channel_read_state(channel, current_user, db)
 
-    return posts
+    return [build_channel_post_response(post, current_user, db) for post in posts]
 
 
 def create_channel_post(channel_id: int, text: str | None, media: UploadFile | None, db: Session, current_user: User):
@@ -404,7 +425,7 @@ def create_channel_post(channel_id: int, text: str | None, media: UploadFile | N
     db.commit()
     db.refresh(new_post)
 
-    return new_post
+    return build_channel_post_response(new_post, current_user, db)
 
 
 def edit_channel_post(channel_id: int, post_id: int, data: ChannelPostUpdateSchema, db: Session, current_user: User):
@@ -421,7 +442,7 @@ def edit_channel_post(channel_id: int, post_id: int, data: ChannelPostUpdateSche
     db.commit()
     db.refresh(post)
 
-    return post
+    return build_channel_post_response(post, current_user, db)
 
 
 def delete_channel_post(channel_id: int, post_id: int, db: Session, current_user: User):
@@ -458,7 +479,7 @@ def pin_channel_post(channel_id: int, post_id: int, db: Session, current_user: U
     db.commit()
     db.refresh(post)
 
-    return post
+    return build_channel_post_response(post, current_user, db)
 
 
 def add_channel_post_reaction(channel_id: int, post_id: int, data: ChannelReactionCreateSchema, db: Session, current_user: User):
@@ -487,4 +508,4 @@ def add_channel_post_reaction(channel_id: int, post_id: int, data: ChannelReacti
     db.commit()
     db.refresh(post)
 
-    return post
+    return build_channel_post_response(post, current_user, db)

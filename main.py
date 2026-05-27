@@ -7,6 +7,7 @@ from channels import models as channels_models
 from chats import models as chats_models
 from contacts import models as contacts_models
 from groups import models as groups_models
+from polls import models as polls_models
 from profiles import models as profiles_models
 from stories import models as stories_models
 from users import models as users_models
@@ -16,6 +17,7 @@ from routers.channels_routers import channels_router
 from routers.chats_routers import chats_router
 from routers.contacts_routers import contacts_router
 from routers.groups_routers import groups_router
+from routers.polls_routers import polls_router
 from routers.profiles_routers import profiles_router
 from routers.stories_routers import stories_router
 from routers.users_routers import users_router
@@ -36,3 +38,4 @@ app.include_router(stories_router)
 app.include_router(chats_router)
 app.include_router(groups_router)
 app.include_router(channels_router)
+app.include_router(polls_router)
