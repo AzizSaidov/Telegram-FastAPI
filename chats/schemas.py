@@ -110,5 +110,32 @@ class ChatRead(BaseModel):
     unread_count: int
 
 
+class UnifiedLastMessageRead(BaseModel):
+    id: int
+    text: str | None
+    media_url: str | None
+    created_at: datetime
+    sender: UserInChat
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UnifiedChatRead(BaseModel):
+    id: int
+    type: str
+    title: str
+    avatar_url: str | None
+    created_at: datetime
+    updated_at: datetime
+    unread_count: int
+    last_message: UnifiedLastMessageRead | None
+    user: UserInChat | None = None
+    members_count: int | None = None
+    current_user_role: str | None = None
+    is_online: bool | None = None
+    last_seen: datetime | None = None
+    is_public: bool | None = None
+
+
 class DetailResponse(BaseModel):
     detail: str

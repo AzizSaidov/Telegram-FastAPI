@@ -6,9 +6,13 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from channels.models import ChannelMember, ChannelPost
+from channels.views import get_channel_unread_count
 from chats.models import Chat, Message, MessageReaction
 from chats.permissions import check_chat_member, check_private_chat_block, get_other_user
 from chats.schemas import ChatCreateSchema, MessageUpdateSchema, ReactionCreateSchema
+from groups.models import GroupMember, GroupMessage
+from groups.views import get_group_unread_count
 from notifications.views import create_notification
 from profiles.models import Profile
 from sockets.schemas import EVENT_MESSAGE_CREATED, EVENT_MESSAGE_DELETED, EVENT_MESSAGE_UPDATED, EVENT_REACTION_CREATED, socket_event
@@ -117,6 +121,106 @@ def get_chats(db: Session, current_user: User):
         key=lambda chat: chat["last_message"].created_at if chat["last_message"] else chat["created_at"],
         reverse=True,
     )
+
+
+def build_unified_last_message(message):
+    if message is None:
+        return None
+
+    return {
+        "id": message.id,
+        "text": message.text,
+        "media_url": message.media_url,
+        "created_at": message.created_at,
+        "sender": message.sender,
+    }
+
+
+def get_unified_chats(db: Session, current_user: User):
+    items = []
+    private_chats = db.query(Chat).filter(
+        or_(
+            Chat.user_id_1 == current_user.id,
+            Chat.user_id_2 == current_user.id,
+        )
+    ).all()
+
+    for chat in private_chats:
+        other_user = get_other_user(chat, current_user)
+        other_profile = other_user.profile
+        last_message = db.query(Message).filter(Message.chat_id == chat.id).order_by(Message.created_at.desc()).first()
+        unread_count = db.query(Message).filter(
+            Message.chat_id == chat.id,
+            Message.sender_id != current_user.id,
+            Message.is_read == False,
+        ).count()
+
+        items.append({
+            "id": chat.id,
+            "type": "private",
+            "title": other_profile.full_name or other_profile.username,
+            "avatar_url": other_profile.avatar_url,
+            "created_at": chat.created_at,
+            "updated_at": last_message.created_at if last_message else chat.created_at,
+            "unread_count": unread_count,
+            "last_message": build_unified_last_message(last_message),
+            "user": other_user,
+            "members_count": None,
+            "current_user_role": None,
+            "is_online": other_profile.is_online,
+            "last_seen": other_profile.last_seen,
+            "is_public": None,
+        })
+
+    group_memberships = db.query(GroupMember).filter(GroupMember.user_id == current_user.id).all()
+
+    for membership in group_memberships:
+        group = membership.group
+        last_message = db.query(GroupMessage).filter(GroupMessage.group_id == group.id).order_by(GroupMessage.created_at.desc()).first()
+        members_count = db.query(GroupMember).filter(GroupMember.group_id == group.id).count()
+
+        items.append({
+            "id": group.id,
+            "type": "group",
+            "title": group.name,
+            "avatar_url": group.avatar_url,
+            "created_at": group.created_at,
+            "updated_at": last_message.created_at if last_message else group.created_at,
+            "unread_count": get_group_unread_count(group.id, current_user, db),
+            "last_message": build_unified_last_message(last_message),
+            "user": None,
+            "members_count": members_count,
+            "current_user_role": membership.role,
+            "is_online": None,
+            "last_seen": None,
+            "is_public": None,
+        })
+
+    channel_memberships = db.query(ChannelMember).filter(ChannelMember.user_id == current_user.id).all()
+
+    for membership in channel_memberships:
+        channel = membership.channel
+        last_post = db.query(ChannelPost).filter(ChannelPost.channel_id == channel.id).order_by(ChannelPost.created_at.desc()).first()
+        members_count = db.query(ChannelMember).filter(ChannelMember.channel_id == channel.id).count()
+
+        items.append({
+            "id": channel.id,
+            "type": "channel",
+            "title": channel.name,
+            "avatar_url": channel.avatar_url,
+            "created_at": channel.created_at,
+            "updated_at": last_post.created_at if last_post else channel.created_at,
+            "unread_count": get_channel_unread_count(channel.id, current_user, db),
+            "last_message": build_unified_last_message(last_post),
+            "user": None,
+            "members_count": members_count,
+            "current_user_role": membership.role,
+            "is_online": None,
+            "last_seen": None,
+            "is_public": channel.is_public,
+        })
+
+    return sorted(items, key=lambda item: item["updated_at"], reverse=True)
 
 
 def create_or_get_chat(data: ChatCreateSchema, db: Session, current_user: User):
