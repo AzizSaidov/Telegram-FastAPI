@@ -23,3 +23,14 @@ def check_current_user(profile: Profile, current_user: User):
         raise HTTPException(status_code=403, detail="Permission denied")
 
     return True
+
+
+def is_blocked(db: Session, blocker_id: int, blocked_id: int):
+    from blocks.models import BlockedUser
+
+    blocked_user = db.query(BlockedUser).filter(
+        BlockedUser.blocker_id == blocker_id,
+        BlockedUser.blocked_id == blocked_id,
+    ).first()
+
+    return blocked_user is not None
