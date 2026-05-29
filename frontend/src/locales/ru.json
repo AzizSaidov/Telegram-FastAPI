@@ -1,0 +1,128 @@
+{
+  "auth": {
+    "title": "Telegram",
+    "subtitle": "Войдите или создайте аккаунт",
+    "login_tab": "Вход",
+    "register_tab": "Регистрация",
+    "phone": "Номер телефона",
+    "password": "Пароль",
+    "username": "Имя пользователя",
+    "full_name": "Полное имя",
+    "login_btn": "Войти",
+    "register_btn": "Зарегистрироваться",
+    "logging_in": "Вход...",
+    "registering": "Регистрация..."
+  },
+  "sidebar": {
+    "search_placeholder": "Поиск",
+    "new_chat": "Новый чат",
+    "new_group": "Новая группа",
+    "new_channel": "Новый канал",
+    "select_chat": "Выберите чат"
+  },
+  "chat": {
+    "online": "в сети",
+    "last_seen": "был(а) в сети",
+    "members": "участников",
+    "subscribers": "подписчиков",
+    "message_placeholder": "Сообщение...",
+    "edited": "изменено",
+    "pinned_message": "Закреплённое сообщение",
+    "reply": "Ответить",
+    "forward": "Переслать",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "pin": "Закрепить",
+    "unpin": "Открепить",
+    "add_reaction": "Реакция",
+    "forwarded": "Переслано",
+    "typing": "печатает...",
+    "several_typing": "печатают...",
+    "message_deleted": "Сообщение удалено"
+  },
+  "group": {
+    "members_title": "Участники",
+    "add_member": "Добавить участника",
+    "remove_member": "Удалить",
+    "make_admin": "Назначить админом",
+    "admin": "админ",
+    "member": "участник",
+    "info": "Информация о группе"
+  },
+  "channel": {
+    "subscriber": "подписчик",
+    "admin": "админ",
+    "subscribe": "Подписаться",
+    "unsubscribe": "Отписаться",
+    "info": "Информация о канале"
+  },
+  "stories": {
+    "your_story": "Ваша история",
+    "add_story": "Добавить историю",
+    "views": "просмотров",
+    "viewed_by": "Просмотрели"
+  },
+  "poll": {
+    "total_votes": "Всего голосов",
+    "voted": "Вы проголосовали",
+    "vote": "Голосовать"
+  },
+  "notifications": {
+    "title": "Уведомления",
+    "mark_all_read": "Прочитать все",
+    "empty": "Нет уведомлений",
+    "new_message": "Новое сообщение",
+    "new_group_message": "Сообщение в группе",
+    "new_channel_post": "Новый пост в канале",
+    "new_reaction": "Реакция на сообщение",
+    "mention": "Упомянул вас"
+  },
+  "profile": {
+    "title": "Профиль",
+    "edit": "Редактировать",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "phone": "Телефон",
+    "username": "Имя пользователя",
+    "full_name": "Полное имя",
+    "bio": "О себе",
+    "logout": "Выйти",
+    "settings": "Настройки"
+  },
+  "contacts": {
+    "title": "Контакты",
+    "add": "Добавить контакт",
+    "remove": "Удалить",
+    "search_placeholder": "Поиск контактов",
+    "empty": "Нет контактов",
+    "username_placeholder": "Введите username"
+  },
+  "modals": {
+    "create_group": "Создать группу",
+    "create_channel": "Создать канал",
+    "group_name": "Название группы",
+    "channel_name": "Название канала",
+    "description": "Описание",
+    "public_channel": "Публичный канал",
+    "create": "Создать",
+    "cancel": "Отмена",
+    "add_member": "Добавить участника",
+    "forward_to": "Переслать в...",
+    "send": "Отправить",
+    "send_media": "Отправить медиа",
+    "preview": "Предпросмотр"
+  },
+  "theme": {
+    "light": "Светлая тема",
+    "dark": "Тёмная тема"
+  },
+  "common": {
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "no_results": "Ничего не найдено",
+    "close": "Закрыть",
+    "confirm": "Подтвердить",
+    "yes": "Да",
+    "no": "Нет"
+  }
+}

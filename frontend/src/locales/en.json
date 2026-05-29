@@ -1,0 +1,128 @@
+{
+  "auth": {
+    "title": "Telegram",
+    "subtitle": "Sign in or create an account",
+    "login_tab": "Login",
+    "register_tab": "Register",
+    "phone": "Phone number",
+    "password": "Password",
+    "username": "Username",
+    "full_name": "Full name",
+    "login_btn": "Sign In",
+    "register_btn": "Sign Up",
+    "logging_in": "Signing in...",
+    "registering": "Signing up..."
+  },
+  "sidebar": {
+    "search_placeholder": "Search",
+    "new_chat": "New Chat",
+    "new_group": "New Group",
+    "new_channel": "New Channel",
+    "select_chat": "Select a chat"
+  },
+  "chat": {
+    "online": "online",
+    "last_seen": "last seen",
+    "members": "members",
+    "subscribers": "subscribers",
+    "message_placeholder": "Message...",
+    "edited": "edited",
+    "pinned_message": "Pinned message",
+    "reply": "Reply",
+    "forward": "Forward",
+    "edit": "Edit",
+    "delete": "Delete",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "add_reaction": "React",
+    "forwarded": "Forwarded",
+    "typing": "typing...",
+    "several_typing": "typing...",
+    "message_deleted": "Message deleted"
+  },
+  "group": {
+    "members_title": "Members",
+    "add_member": "Add member",
+    "remove_member": "Remove",
+    "make_admin": "Make admin",
+    "admin": "admin",
+    "member": "member",
+    "info": "Group info"
+  },
+  "channel": {
+    "subscriber": "subscriber",
+    "admin": "admin",
+    "subscribe": "Subscribe",
+    "unsubscribe": "Unsubscribe",
+    "info": "Channel info"
+  },
+  "stories": {
+    "your_story": "Your story",
+    "add_story": "Add story",
+    "views": "views",
+    "viewed_by": "Viewed by"
+  },
+  "poll": {
+    "total_votes": "Total votes",
+    "voted": "You voted",
+    "vote": "Vote"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "mark_all_read": "Mark all read",
+    "empty": "No notifications",
+    "new_message": "New message",
+    "new_group_message": "Group message",
+    "new_channel_post": "New channel post",
+    "new_reaction": "Reacted to message",
+    "mention": "Mentioned you"
+  },
+  "profile": {
+    "title": "Profile",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "phone": "Phone",
+    "username": "Username",
+    "full_name": "Full name",
+    "bio": "Bio",
+    "logout": "Log out",
+    "settings": "Settings"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "add": "Add contact",
+    "remove": "Remove",
+    "search_placeholder": "Search contacts",
+    "empty": "No contacts",
+    "username_placeholder": "Enter username"
+  },
+  "modals": {
+    "create_group": "Create group",
+    "create_channel": "Create channel",
+    "group_name": "Group name",
+    "channel_name": "Channel name",
+    "description": "Description",
+    "public_channel": "Public channel",
+    "create": "Create",
+    "cancel": "Cancel",
+    "add_member": "Add member",
+    "forward_to": "Forward to...",
+    "send": "Send",
+    "send_media": "Send media",
+    "preview": "Preview"
+  },
+  "theme": {
+    "light": "Light theme",
+    "dark": "Dark theme"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "no_results": "No results",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  }
+}
