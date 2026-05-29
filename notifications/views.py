@@ -17,6 +17,9 @@ NOTIFICATION_TYPES = [
 
 
 def build_notification_event_data(notification: Notification):
+    from_user = notification.from_user
+    profile = from_user.profile if from_user else None
+
     return {
         "id": notification.id,
         "type": notification.type,
@@ -24,7 +27,16 @@ def build_notification_event_data(notification: Notification):
         "entity_type": notification.entity_type,
         "is_read": notification.is_read,
         "created_at": notification.created_at.isoformat(),
-        "from_user_id": notification.from_user_id,
+        "from_user": {
+            "id": from_user.id,
+            "profile": {
+                "username": profile.username if profile else None,
+                "full_name": profile.full_name if profile else None,
+                "avatar_url": profile.avatar_url if profile else None,
+                "is_online": profile.is_online if profile else False,
+                "last_seen": profile.last_seen.isoformat() if profile and profile.last_seen else None,
+            },
+        } if from_user else None,
     }
 
 
@@ -40,7 +52,7 @@ def create_notification(
         return None
 
     if notification_type not in NOTIFICATION_TYPES:
-        raise ValueError("Invalid notification type")
+        raise HTTPException(status_code=400, detail="Invalid notification type")
 
     new_notification = Notification(
         to_user_id=to_user_id,

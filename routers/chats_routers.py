@@ -32,7 +32,7 @@ def search_chats(q: str = Query(...), db: Session = Depends(get_db), current_use
 
 
 @chats_router.delete("/{chat_id}", response_model=DetailResponse)
-def delete_chat_endpoint(chat_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def remove_chat(chat_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return delete_chat(chat_id, db, current_user)
 
 

@@ -179,8 +179,8 @@ def get_unified_chats(db: Session, current_user: User):
             items.append({
                 "id": chat.id,
                 "type": "private",
-                "title": other_profile.full_name or other_profile.username or f"User {other_user.id}",
-                "avatar_url": other_profile.avatar_url,
+                "title": (other_profile.full_name or other_profile.username if other_profile else None) or f"User {other_user.id}",
+                "avatar_url": other_profile.avatar_url if other_profile else None,
                 "created_at": chat.created_at,
                 "updated_at": last_message.created_at if last_message else chat.created_at,
                 "unread_count": unread_by_chat.get(chat.id, 0),
@@ -188,8 +188,8 @@ def get_unified_chats(db: Session, current_user: User):
                 "user": other_user,
                 "members_count": None,
                 "current_user_role": None,
-                "is_online": other_profile.is_online,
-                "last_seen": other_profile.last_seen,
+                "is_online": other_profile.is_online if other_profile else False,
+                "last_seen": other_profile.last_seen if other_profile else None,
                 "is_public": None,
             })
 
@@ -297,7 +297,7 @@ def search_unified_chats(q: str, db: Session, current_user: User):
         title = item["title"].lower()
         username = ""
 
-        if item["user"] and item["user"].profile:
+        if item["user"] and item["user"].profile and item["user"].profile.username:
             username = item["user"].profile.username.lower()
 
         if query in title or query in username:

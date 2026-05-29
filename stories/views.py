@@ -1,5 +1,5 @@
 import shutil
-from datetime import timedelta
+from datetime import timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -180,7 +180,10 @@ def view_story(story_id: int, db: Session, current_user: User):
     if story is None:
         raise HTTPException(status_code=404, detail="Story not found")
 
-    if story.expires_at <= get_dushanbe_time():
+    expires_at = story.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at <= get_dushanbe_time():
         raise HTTPException(status_code=400, detail="Story expired")
 
     if story.user_id == current_user.id:

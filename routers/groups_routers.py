@@ -43,7 +43,7 @@ def group_detail(group_id: int, db: Session = Depends(get_db), current_user: Use
 
 
 @groups_router.delete("/{group_id}", response_model=DetailResponse)
-def delete_group_endpoint(group_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def remove_group(group_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return delete_group(group_id, db, current_user)
 
 

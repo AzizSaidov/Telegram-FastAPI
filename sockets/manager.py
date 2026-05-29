@@ -1,4 +1,5 @@
 from fastapi import WebSocket
+from starlette.websockets import WebSocketDisconnect
 
 
 class ConnectionManager:
@@ -34,7 +35,7 @@ class ConnectionManager:
         for websocket in connections.copy():
             try:
                 await websocket.send_json(data)
-            except RuntimeError:
+            except (RuntimeError, WebSocketDisconnect):
                 self.disconnect(user_id, websocket)
 
     async def broadcast_to_users(self, user_ids: list[int], data: dict):

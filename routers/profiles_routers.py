@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -25,11 +26,16 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    data = ProfileUpdateSchema(
-        username=username,
-        full_name=full_name,
-        bio=bio,
-    )
+    try:
+        data = ProfileUpdateSchema(
+            username=username,
+            full_name=full_name,
+            bio=bio,
+        )
+    except ValidationError as e:
+        errors = e.errors()
+        msg = errors[0]["msg"].replace("Value error, ", "") if errors else "Validation error"
+        raise HTTPException(status_code=422, detail=msg)
 
     return update_my_profile(data, db, current_user.id, avatar)
 

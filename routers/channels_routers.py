@@ -45,7 +45,7 @@ def channel_detail(channel_id: int, db: Session = Depends(get_db), current_user:
 
 
 @channels_router.delete("/{channel_id}", response_model=DetailResponse)
-def delete_channel_endpoint(channel_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def remove_channel(channel_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return delete_channel(channel_id, db, current_user)
 
 

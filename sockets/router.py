@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
@@ -94,7 +96,12 @@ async def websocket_endpoint(
 
     try:
         while True:
-            data = await websocket.receive_json()
+            try:
+                data = await websocket.receive_json()
+            except json.JSONDecodeError:
+                await manager.send_to_user(current_user.id, socket_event(EVENT_ERROR, {"detail": "Invalid JSON"}))
+                continue
+
             event_type = data.get("type")
             event_data = data.get("data", {})
 
