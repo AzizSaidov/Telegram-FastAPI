@@ -3,7 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from channels.models import ChannelMember, ChannelPost
@@ -138,87 +138,148 @@ def build_unified_last_message(message):
 
 def get_unified_chats(db: Session, current_user: User):
     items = []
+
+    # ── Private chats ────────────────────────────────────────────────────────
     private_chats = db.query(Chat).filter(
-        or_(
-            Chat.user_id_1 == current_user.id,
-            Chat.user_id_2 == current_user.id,
-        )
+        or_(Chat.user_id_1 == current_user.id, Chat.user_id_2 == current_user.id)
     ).all()
 
-    for chat in private_chats:
-        other_user = get_other_user(chat, current_user)
-        other_profile = other_user.profile
-        last_message = db.query(Message).filter(Message.chat_id == chat.id).order_by(Message.created_at.desc()).first()
-        unread_count = db.query(Message).filter(
-            Message.chat_id == chat.id,
-            Message.sender_id != current_user.id,
-            Message.is_read == False,
-        ).count()
+    if private_chats:
+        chat_ids = [c.id for c in private_chats]
 
-        items.append({
-            "id": chat.id,
-            "type": "private",
-        "title": other_profile.full_name or other_profile.username or f"User {other_user.id}",
-            "avatar_url": other_profile.avatar_url,
-            "created_at": chat.created_at,
-            "updated_at": last_message.created_at if last_message else chat.created_at,
-            "unread_count": unread_count,
-            "last_message": build_unified_last_message(last_message),
-            "user": other_user,
-            "members_count": None,
-            "current_user_role": None,
-            "is_online": other_profile.is_online,
-            "last_seen": other_profile.last_seen,
-            "is_public": None,
-        })
+        # Last message id per chat — one query
+        last_msg_ids = dict(
+            db.query(Message.chat_id, func.max(Message.id))
+            .filter(Message.chat_id.in_(chat_ids))
+            .group_by(Message.chat_id)
+            .all()
+        )
+        last_messages_by_chat = {
+            m.chat_id: m
+            for m in db.query(Message).filter(Message.id.in_(last_msg_ids.values())).all()
+        } if last_msg_ids else {}
 
+        # Unread counts — one query
+        unread_rows = (
+            db.query(Message.chat_id, func.count(Message.id))
+            .filter(
+                Message.chat_id.in_(chat_ids),
+                Message.sender_id != current_user.id,
+                Message.is_read == False,
+            )
+            .group_by(Message.chat_id)
+            .all()
+        )
+        unread_by_chat = {row[0]: row[1] for row in unread_rows}
+
+        for chat in private_chats:
+            other_user = get_other_user(chat, current_user)
+            other_profile = other_user.profile
+            last_message = last_messages_by_chat.get(chat.id)
+            items.append({
+                "id": chat.id,
+                "type": "private",
+                "title": other_profile.full_name or other_profile.username or f"User {other_user.id}",
+                "avatar_url": other_profile.avatar_url,
+                "created_at": chat.created_at,
+                "updated_at": last_message.created_at if last_message else chat.created_at,
+                "unread_count": unread_by_chat.get(chat.id, 0),
+                "last_message": build_unified_last_message(last_message),
+                "user": other_user,
+                "members_count": None,
+                "current_user_role": None,
+                "is_online": other_profile.is_online,
+                "last_seen": other_profile.last_seen,
+                "is_public": None,
+            })
+
+    # ── Groups ────────────────────────────────────────────────────────────────
     group_memberships = db.query(GroupMember).filter(GroupMember.user_id == current_user.id).all()
 
-    for membership in group_memberships:
-        group = membership.group
-        last_message = db.query(GroupMessage).filter(GroupMessage.group_id == group.id).order_by(GroupMessage.created_at.desc()).first()
-        members_count = db.query(GroupMember).filter(GroupMember.group_id == group.id).count()
+    if group_memberships:
+        group_ids = [m.group_id for m in group_memberships]
 
-        items.append({
-            "id": group.id,
-            "type": "group",
-            "title": group.name,
-            "avatar_url": group.avatar_url,
-            "created_at": group.created_at,
-            "updated_at": last_message.created_at if last_message else group.created_at,
-            "unread_count": get_group_unread_count(group.id, current_user, db),
-            "last_message": build_unified_last_message(last_message),
-            "user": None,
-            "members_count": members_count,
-            "current_user_role": membership.role,
-            "is_online": None,
-            "last_seen": None,
-            "is_public": None,
-        })
+        last_gmsg_ids = dict(
+            db.query(GroupMessage.group_id, func.max(GroupMessage.id))
+            .filter(GroupMessage.group_id.in_(group_ids))
+            .group_by(GroupMessage.group_id)
+            .all()
+        )
+        last_gmsgs = {
+            m.group_id: m
+            for m in db.query(GroupMessage).filter(GroupMessage.id.in_(last_gmsg_ids.values())).all()
+        } if last_gmsg_ids else {}
 
+        member_counts_g = dict(
+            db.query(GroupMember.group_id, func.count(GroupMember.id))
+            .filter(GroupMember.group_id.in_(group_ids))
+            .group_by(GroupMember.group_id)
+            .all()
+        )
+
+        for membership in group_memberships:
+            group = membership.group
+            last_message = last_gmsgs.get(group.id)
+            items.append({
+                "id": group.id,
+                "type": "group",
+                "title": group.name,
+                "avatar_url": group.avatar_url,
+                "created_at": group.created_at,
+                "updated_at": last_message.created_at if last_message else group.created_at,
+                "unread_count": get_group_unread_count(group.id, current_user, db),
+                "last_message": build_unified_last_message(last_message),
+                "user": None,
+                "members_count": member_counts_g.get(group.id, 0),
+                "current_user_role": membership.role,
+                "is_online": None,
+                "last_seen": None,
+                "is_public": None,
+            })
+
+    # ── Channels ──────────────────────────────────────────────────────────────
     channel_memberships = db.query(ChannelMember).filter(ChannelMember.user_id == current_user.id).all()
 
-    for membership in channel_memberships:
-        channel = membership.channel
-        last_post = db.query(ChannelPost).filter(ChannelPost.channel_id == channel.id).order_by(ChannelPost.created_at.desc()).first()
-        members_count = db.query(ChannelMember).filter(ChannelMember.channel_id == channel.id).count()
+    if channel_memberships:
+        channel_ids = [m.channel_id for m in channel_memberships]
 
-        items.append({
-            "id": channel.id,
-            "type": "channel",
-            "title": channel.name,
-            "avatar_url": channel.avatar_url,
-            "created_at": channel.created_at,
-            "updated_at": last_post.created_at if last_post else channel.created_at,
-            "unread_count": get_channel_unread_count(channel.id, current_user, db),
-            "last_message": build_unified_last_message(last_post),
-            "user": None,
-            "members_count": members_count,
-            "current_user_role": membership.role,
-            "is_online": None,
-            "last_seen": None,
-            "is_public": channel.is_public,
-        })
+        last_post_ids = dict(
+            db.query(ChannelPost.channel_id, func.max(ChannelPost.id))
+            .filter(ChannelPost.channel_id.in_(channel_ids))
+            .group_by(ChannelPost.channel_id)
+            .all()
+        )
+        last_posts = {
+            p.channel_id: p
+            for p in db.query(ChannelPost).filter(ChannelPost.id.in_(last_post_ids.values())).all()
+        } if last_post_ids else {}
+
+        member_counts_c = dict(
+            db.query(ChannelMember.channel_id, func.count(ChannelMember.id))
+            .filter(ChannelMember.channel_id.in_(channel_ids))
+            .group_by(ChannelMember.channel_id)
+            .all()
+        )
+
+        for membership in channel_memberships:
+            channel = membership.channel
+            last_post = last_posts.get(channel.id)
+            items.append({
+                "id": channel.id,
+                "type": "channel",
+                "title": channel.name,
+                "avatar_url": channel.avatar_url,
+                "created_at": channel.created_at,
+                "updated_at": last_post.created_at if last_post else channel.created_at,
+                "unread_count": get_channel_unread_count(channel.id, current_user, db),
+                "last_message": build_unified_last_message(last_post),
+                "user": None,
+                "members_count": member_counts_c.get(channel.id, 0),
+                "current_user_role": membership.role,
+                "is_online": None,
+                "last_seen": None,
+                "is_public": channel.is_public,
+            })
 
     return sorted(items, key=lambda item: item["updated_at"], reverse=True)
 
@@ -246,15 +307,21 @@ def search_unified_chats(q: str, db: Session, current_user: User):
 
 
 def create_or_get_chat(data: ChatCreateSchema, db: Session, current_user: User):
-    profile = db.query(Profile).filter(Profile.username == data.username).first()
+    if data.user_id is not None:
+        other_user = db.query(User).filter(User.id == data.user_id).first()
 
-    if profile is None:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        if other_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+    else:
+        profile = db.query(Profile).filter(Profile.username == data.username).first()
 
-    other_user = db.query(User).filter(User.id == profile.user_id).first()
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
 
-    if other_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        other_user = db.query(User).filter(User.id == profile.user_id).first()
+
+        if other_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
 
     if other_user.id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot create chat with yourself")
@@ -435,6 +502,42 @@ def pin_message(chat_id: int, message_id: int, db: Session, current_user: User):
     )
 
     return message
+
+
+def unpin_message(chat_id: int, message_id: int, db: Session, current_user: User):
+    chat = get_chat_or_404(chat_id, db)
+    check_chat_member(chat, current_user)
+    message = get_message_or_404(message_id, db)
+
+    if message.chat_id != chat.id:
+        raise HTTPException(status_code=404, detail="Message not found in this chat")
+
+    message.is_pinned = False
+    db.commit()
+
+    other_user = get_other_user(chat, current_user)
+    broadcast_socket_event_to_users(
+        [current_user.id, other_user.id],
+        socket_event(EVENT_MESSAGE_UPDATED, build_message_event_data(message)),
+    )
+
+    return {"detail": "Сообщение откреплено"}
+
+
+def delete_chat(chat_id: int, db: Session, current_user: User):
+    chat = get_chat_or_404(chat_id, db)
+    check_chat_member(chat, current_user)
+
+    db.query(MessageReaction).filter(
+        MessageReaction.message_id.in_(
+            db.query(Message.id).filter(Message.chat_id == chat_id)
+        )
+    ).delete(synchronize_session=False)
+    db.query(Message).filter(Message.chat_id == chat_id).delete()
+    db.delete(chat)
+    db.commit()
+
+    return {"detail": "Чат удалён"}
 
 
 def add_message_reaction(chat_id: int, message_id: int, data: ReactionCreateSchema, db: Session, current_user: User):

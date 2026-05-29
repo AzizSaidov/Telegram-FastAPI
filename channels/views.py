@@ -568,6 +568,45 @@ def pin_channel_post(channel_id: int, post_id: int, db: Session, current_user: U
     return build_channel_post_response(post, current_user, db)
 
 
+def unpin_channel_post(channel_id: int, post_id: int, db: Session, current_user: User):
+    channel = get_channel_or_404(channel_id, db)
+    check_channel_admin(channel, current_user, db)
+    post = get_channel_post_or_404(post_id, db)
+
+    if post.channel_id != channel.id:
+        raise HTTPException(status_code=404, detail="Channel post not found in this channel")
+
+    post.is_pinned = False
+    db.commit()
+
+    broadcast_socket_event_to_users(
+        get_channel_user_ids(channel.id, db),
+        socket_event(EVENT_CHANNEL_POST_UPDATED, build_channel_post_event_data(post)),
+    )
+
+    return {"detail": "Пост откреплён"}
+
+
+def delete_channel(channel_id: int, db: Session, current_user: User):
+    channel = get_channel_or_404(channel_id, db)
+
+    if channel.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Только владелец может удалить канал")
+
+    db.query(ChannelPostReaction).filter(
+        ChannelPostReaction.post_id.in_(
+            db.query(ChannelPost.id).filter(ChannelPost.channel_id == channel_id)
+        )
+    ).delete(synchronize_session=False)
+    db.query(ChannelReadState).filter(ChannelReadState.channel_id == channel_id).delete()
+    db.query(ChannelPost).filter(ChannelPost.channel_id == channel_id).delete()
+    db.query(ChannelMember).filter(ChannelMember.channel_id == channel_id).delete()
+    db.delete(channel)
+    db.commit()
+
+    return {"detail": "Канал удалён"}
+
+
 def add_channel_post_reaction(channel_id: int, post_id: int, data: ChannelReactionCreateSchema, db: Session, current_user: User):
     channel = get_channel_or_404(channel_id, db)
     check_channel_member(channel, current_user, db)

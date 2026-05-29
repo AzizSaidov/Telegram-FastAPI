@@ -509,6 +509,45 @@ def pin_group_message(group_id: int, message_id: int, db: Session, current_user:
     return message
 
 
+def unpin_group_message(group_id: int, message_id: int, db: Session, current_user: User):
+    group = get_group_or_404(group_id, db)
+    check_group_admin(group, current_user, db)
+    message = get_group_message_or_404(message_id, db)
+
+    if message.group_id != group.id:
+        raise HTTPException(status_code=404, detail="Group message not found in this group")
+
+    message.is_pinned = False
+    db.commit()
+
+    broadcast_socket_event_to_users(
+        get_group_user_ids(group.id, db),
+        socket_event(EVENT_MESSAGE_UPDATED, build_group_message_event_data(message)),
+    )
+
+    return {"detail": "Сообщение откреплено"}
+
+
+def delete_group(group_id: int, db: Session, current_user: User):
+    group = get_group_or_404(group_id, db)
+
+    if group.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Только владелец может удалить группу")
+
+    db.query(GroupMessageReaction).filter(
+        GroupMessageReaction.message_id.in_(
+            db.query(GroupMessage.id).filter(GroupMessage.group_id == group_id)
+        )
+    ).delete(synchronize_session=False)
+    db.query(GroupReadState).filter(GroupReadState.group_id == group_id).delete()
+    db.query(GroupMessage).filter(GroupMessage.group_id == group_id).delete()
+    db.query(GroupMember).filter(GroupMember.group_id == group_id).delete()
+    db.delete(group)
+    db.commit()
+
+    return {"detail": "Группа удалена"}
+
+
 def add_group_message_reaction(group_id: int, message_id: int, data: GroupReactionCreateSchema, db: Session, current_user: User):
     group = get_group_or_404(group_id, db)
     check_group_member(group, current_user, db)

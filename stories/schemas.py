@@ -37,6 +37,8 @@ class StoryInGroup(BaseModel):
     media_type: str
     expires_at: datetime
     created_at: datetime
+    is_viewed_by_me: bool = False
+    views_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,6 +46,9 @@ class StoryInGroup(BaseModel):
 class StoryGroupRead(BaseModel):
     user: UserInStory
     stories: list[StoryInGroup]
+    is_me: bool = False
+    has_unviewed: bool = False
+    last_story_at: datetime | None = None
 
 
 class StoryViewRead(BaseModel):

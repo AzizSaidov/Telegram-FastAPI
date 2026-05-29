@@ -1,20 +1,31 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class ChatCreateSchema(BaseModel):
-    username: str
+    username: str | None = None
+    user_id: int | None = None
 
     @field_validator("username")
     @classmethod
     def validate_username(cls, value: str):
+        if value is None:
+            return value
+
         value = value.strip().lower()
 
         if not value:
             raise ValueError("Username is required")
 
         return value
+
+    @model_validator(mode="after")
+    def validate_target(self):
+        if not self.username and self.user_id is None:
+            raise ValueError("Username or user_id is required")
+
+        return self
 
 
 class MessageUpdateSchema(BaseModel):

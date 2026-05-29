@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from channels.models import ChannelPost
@@ -10,18 +11,25 @@ from users.models import User
 
 
 def build_poll_response(poll: Poll, current_user: User, db: Session):
-    total_votes = db.query(PollVote).filter(PollVote.poll_id == poll.id).count()
+    # One query for all vote counts grouped by option
+    counts_rows = (
+        db.query(PollVote.option_id, func.count(PollVote.id))
+        .filter(PollVote.poll_id == poll.id)
+        .group_by(PollVote.option_id)
+        .all()
+    )
+    option_vote_counts = {row[0]: row[1] for row in counts_rows}
+    total_votes = sum(option_vote_counts.values())
+
     my_vote = db.query(PollVote).filter(
         PollVote.poll_id == poll.id,
         PollVote.user_id == current_user.id,
     ).first()
 
     options = []
-
     for option in poll.options:
-        votes_count = db.query(PollVote).filter(PollVote.option_id == option.id).count()
+        votes_count = option_vote_counts.get(option.id, 0)
         percent = int((votes_count / total_votes) * 100) if total_votes else 0
-
         options.append({
             "id": option.id,
             "text": option.text,

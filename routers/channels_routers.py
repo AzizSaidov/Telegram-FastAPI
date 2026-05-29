@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from channels.schemas import ChannelCreateSchema, ChannelDetailRead, ChannelMemberCreateSchema, ChannelMemberRead, ChannelPostRead, ChannelPostUpdateSchema, ChannelReactionCreateSchema, ChannelRead, ChannelUpdateSchema, DetailResponse, MembersCountRead
-from channels.views import add_channel_member, add_channel_post_reaction, create_channel, create_channel_post, delete_channel_post, edit_channel_post, get_channel_detail, get_channel_members, get_channel_members_count, get_channel_posts, get_channels, make_channel_admin, pin_channel_post, remove_channel_member, search_channels, subscribe_channel, unsubscribe_channel, update_channel
+from channels.views import add_channel_member, add_channel_post_reaction, create_channel, create_channel_post, delete_channel, delete_channel_post, edit_channel_post, get_channel_detail, get_channel_members, get_channel_members_count, get_channel_posts, get_channels, make_channel_admin, pin_channel_post, remove_channel_member, search_channels, subscribe_channel, unpin_channel_post, unsubscribe_channel, update_channel
 from database import get_db
 from users.auth import get_current_user
 from users.models import User
@@ -42,6 +42,11 @@ def channels_search(q: str = Query(...), db: Session = Depends(get_db), current_
 @channels_router.get("/{channel_id}", response_model=ChannelDetailRead)
 def channel_detail(channel_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return get_channel_detail(channel_id, db, current_user)
+
+
+@channels_router.delete("/{channel_id}", response_model=DetailResponse)
+def delete_channel_endpoint(channel_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return delete_channel(channel_id, db, current_user)
 
 
 @channels_router.put("/{channel_id}", response_model=ChannelDetailRead)
@@ -144,6 +149,11 @@ def remove_channel_post(channel_id: int, post_id: int, db: Session = Depends(get
 @channels_router.post("/{channel_id}/posts/{post_id}/pin", response_model=ChannelPostRead)
 def pin_post_in_channel(channel_id: int, post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return pin_channel_post(channel_id, post_id, db, current_user)
+
+
+@channels_router.post("/{channel_id}/posts/{post_id}/unpin", response_model=DetailResponse)
+def unpin_post_in_channel(channel_id: int, post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return unpin_channel_post(channel_id, post_id, db, current_user)
 
 
 @channels_router.post("/{channel_id}/posts/{post_id}/reactions", response_model=ChannelPostRead)

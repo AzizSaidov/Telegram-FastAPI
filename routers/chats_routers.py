@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from chats.schemas import ChatCreateSchema, ChatRead, DetailResponse, MessageRead, MessageUpdateSchema, ReactionCreateSchema, UnifiedChatRead
-from chats.views import add_message_reaction, create_or_get_chat, delete_message, edit_message, get_chat_messages, get_chats, get_unified_chats, pin_message, search_unified_chats, send_message
+from chats.views import add_message_reaction, create_or_get_chat, delete_chat, delete_message, edit_message, get_chat_messages, get_chats, get_unified_chats, pin_message, search_unified_chats, send_message, unpin_message
 from database import get_db
 from users.auth import get_current_user
 from users.models import User
@@ -29,6 +29,11 @@ def all_chats_list(db: Session = Depends(get_db), current_user: User = Depends(g
 @chats_router.get("/search", response_model=list[UnifiedChatRead])
 def search_chats(q: str = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return search_unified_chats(q, db, current_user)
+
+
+@chats_router.delete("/{chat_id}", response_model=DetailResponse)
+def delete_chat_endpoint(chat_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return delete_chat(chat_id, db, current_user)
 
 
 @chats_router.get("/{chat_id}/messages", response_model=list[MessageRead])
@@ -74,6 +79,11 @@ def remove_message(chat_id: int, message_id: int, db: Session = Depends(get_db),
 @chats_router.post("/{chat_id}/messages/{message_id}/pin", response_model=MessageRead)
 def pin_chat_message(chat_id: int, message_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return pin_message(chat_id, message_id, db, current_user)
+
+
+@chats_router.post("/{chat_id}/messages/{message_id}/unpin", response_model=DetailResponse)
+def unpin_chat_message(chat_id: int, message_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return unpin_message(chat_id, message_id, db, current_user)
 
 
 @chats_router.post("/{chat_id}/messages/{message_id}/reactions", response_model=MessageRead)

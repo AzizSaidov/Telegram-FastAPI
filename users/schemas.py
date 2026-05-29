@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -36,6 +37,47 @@ class VerifyOTPSchema(PhoneNumberSchema):
         return value
 
 
+class RegisterRequestSchema(PhoneNumberSchema):
+    full_name: str
+    username: str | None = None
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str):
+        value = value.strip()
+
+        if len(value) < 2:
+            raise ValueError("Full name must contain at least 2 characters")
+
+        if len(value) > 100:
+            raise ValueError("Full name is too long")
+
+        return value
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str | None):
+        if value is None:
+            return value
+
+        value = value.strip().lower().lstrip("@")
+
+        if not value:
+            return None
+
+        if len(value) < 5 or len(value) > 30:
+            raise ValueError("Username must contain 5-30 characters")
+
+        if not re.fullmatch(r"[a-z0-9_]+", value):
+            raise ValueError("Username can contain only letters, numbers and underscores")
+
+        return value
+
+
+class RegisterVerifyOTPSchema(VerifyOTPSchema, RegisterRequestSchema):
+    pass
+
+
 class OTPResponse(BaseModel):
     detail: str
     phone_number: str
@@ -65,6 +107,7 @@ class UserRead(BaseModel):
 
 class UserSearchRead(BaseModel):
     id: int
+    phone_number: str
     created_at: datetime
     profile: ProfileInUser
 
